@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIND 30 — Le Protocole</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a855f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0a12;
+  --surface: #13111a;
+  --surface2: #1c1926;
+  --border: #2d2840;
+  --text: #e8e6f0;
+  --text-dim: #7b72a0;
+  --accent: #a855f7;
+  --accent-light: #c084fc;
+  --accent-dim: rgba(168,85,247,0.12);
+  --accent-glow: rgba(168,85,247,0.3);
+  --red: #f43f5e;
+  --red-dim: rgba(244,63,94,0.12);
+  --gold: #facc15;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(168,85,247,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.04) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999;
+}
+
+.app { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:24px 20px 60px; }
+
+.header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:32px; padding-bottom:20px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:12px; }
+.header h1 { font-family:'Bebas Neue',sans-serif; font-size:3.2rem; letter-spacing:3px; line-height:1; background:linear-gradient(135deg,#a855f7,#c084fc,#e9d5ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.header .subtitle { font-size:0.85rem; color:var(--text-dim); margin-top:4px; }
+
+.month-nav { display:flex; align-items:center; gap:12px; }
+.month-nav button { background:var(--surface2); border:1px solid var(--border); color:var(--text); width:36px; height:36px; border-radius:8px; cursor:pointer; font-size:1.1rem; transition:all 0.2s; }
+.month-nav button:hover { background:var(--accent); color:white; border-color:var(--accent); box-shadow:0 0 20px var(--accent-glow); }
+.month-nav .current-month { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:2px; min-width:160px; text-align:center; color:var(--accent-light); }
+
+.stats-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px; position:relative; overflow:hidden; }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--accent),var(--accent-light)); opacity:0.7; }
+.stat-card .label { font-size:0.7rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim); margin-bottom:6px; }
+.stat-card .value { font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--accent-light); line-height:1; }
+.stat-card .unit { font-size:0.85rem; color:var(--text-dim); font-family:'DM Sans',sans-serif; }
+
+.main-grid { display:grid; grid-template-columns:1fr; gap:20px; }
+.habit-section, .sleep-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.section-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.section-header h2 { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:2px; color:var(--accent-light); }
+.section-header span { font-size:0.7rem; color:var(--text-dim); }
+.table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+.habit-table { width:100%; border-collapse:collapse; min-width:900px; }
+.habit-table th, .habit-table td { text-align:center; padding:0; border-bottom:1px solid var(--border); border-right:1px solid rgba(255,255,255,0.02); }
+.habit-table thead th { padding:10px 4px; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); background:var(--surface2); position:sticky; top:0; z-index:2; }
+.habit-table thead th.today-col { color:var(--accent-light); background:var(--accent-dim); }
+
+.habit-table .habit-name { text-align:left; padding:10px 12px; font-size:0.8rem; font-weight:500; white-space:nowrap; min-width:200px; position:sticky; left:0; background:var(--surface); z-index:1; border-right:1px solid var(--border); }
+.habit-name .icon-btn { cursor:pointer; margin-right:6px; font-size:1rem; background:none; border:none; padding:2px; border-radius:4px; transition:background 0.15s; vertical-align:middle; }
+.habit-name .icon-btn:hover { background:var(--accent-dim); }
+.habit-name .name-text { cursor:pointer; border-bottom:1px dashed transparent; transition:border-color 0.2s; vertical-align:middle; }
+.habit-name .name-text:hover { border-bottom-color:var(--accent); }
+.habit-name .delete-habit { opacity:0; background:none; border:none; color:var(--red); cursor:pointer; font-size:0.75rem; margin-left:6px; transition:opacity 0.2s; vertical-align:middle; }
+.habit-name:hover .delete-habit { opacity:1; }
+
+.habit-table td.day-cell { width:32px; min-width:32px; height:40px; cursor:pointer; transition:all 0.15s; position:relative; }
+.habit-table td.day-cell:hover { background:rgba(168,85,247,0.06); }
+.habit-table td.day-cell.checked { background:var(--accent-dim); }
+.habit-table td.day-cell.checked::after { content:'✓'; color:var(--accent-light); font-size:0.95rem; font-weight:700; }
+.habit-table td.day-cell.missed { background:var(--red-dim); }
+.habit-table td.day-cell.missed::after { content:'✗'; color:var(--red); font-size:0.85rem; font-weight:700; }
+.habit-table td.today-col { box-shadow:inset 0 0 0 1px rgba(168,85,247,0.2); }
+
+.habit-table .score-row td { background:var(--surface2); border-top:2px solid var(--border); padding:8px 0; }
+.habit-table .score-row .habit-name { background:var(--surface2); font-family:'Bebas Neue',sans-serif; font-size:0.9rem; letter-spacing:1.5px; color:var(--accent-light); }
+.score-val { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:0.5px; }
+.score-val.perfect { color:var(--accent-light); }
+.score-val.good { color:var(--gold); }
+.score-val.low { color:var(--red); }
+
+.sleep-chart-wrap { padding:20px; }
+.sleep-canvas-container { position:relative; width:100%; height:220px; }
+.sleep-canvas-container canvas { width:100%; height:100%; }
+
+/* SLEEP GOAL CONFIG */
+.sleep-goal-bar {
+  display:flex; align-items:center; gap:16px; padding:12px 20px;
+  border-bottom:1px solid var(--border); flex-wrap:wrap;
+}
+.sleep-goal-bar .goal-label {
+  font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; font-weight:700;
+}
+.sleep-goal-bar .goal-group {
+  display:flex; align-items:center; gap:8px;
+}
+.sleep-goal-bar .goal-group label {
+  font-size:0.75rem; color:var(--text-dim);
+}
+.sleep-goal-bar input[type="number"] {
+  width:56px; background:var(--surface); border:1px solid var(--border); border-radius:6px;
+  padding:5px 8px; color:var(--accent-light); font-family:'Bebas Neue',sans-serif; font-size:1rem;
+  text-align:center; outline:none; letter-spacing:1px;
+}
+.sleep-goal-bar input[type="number"]:focus { border-color:var(--accent); }
+.sleep-goal-bar input[type="number"]::-webkit-inner-spin-button { opacity:1; }
+
+/* MODALS */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:32px; width:320px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px var(--accent-glow); }
+.modal-box h3 { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:2px; color:var(--accent-light); margin-bottom:8px; }
+.modal-box .day-label { color:var(--text-dim); font-size:0.8rem; margin-bottom:20px; }
+.modal-box input[type="range"] { -webkit-appearance:none; width:100%; height:6px; border-radius:3px; background:var(--border); outline:none; margin:16px 0; }
+.modal-box input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 10px var(--accent-glow); }
+.sleep-value-display { font-family:'Bebas Neue',sans-serif; font-size:3rem; color:var(--accent-light); line-height:1; }
+.sleep-value-display span.unit-label { font-size:1.2rem; color:var(--text-dim); font-family:'DM Sans',sans-serif; }
+.modal-box .btn-row { display:flex; gap:10px; margin-top:20px; }
+.modal-box button { flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.85rem; transition:all 0.2s; }
+.btn-cancel { background:transparent; color:var(--text-dim); }
+.btn-cancel:hover { background:rgba(255,255,255,0.05); }
+.btn-save { background:var(--accent); color:white; border-color:var(--accent) !important; }
+.btn-save:hover { box-shadow:0 0 20px var(--accent-glow); }
+
+.edit-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.9rem; outline:none; margin-bottom:12px; }
+.edit-input:focus { border-color:var(--accent); }
+.emoji-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-bottom:16px; }
+.emoji-grid button { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px; font-size:1.2rem; cursor:pointer; transition:all 0.15s; flex:unset; }
+.emoji-grid button:hover { background:var(--accent-dim); border-color:var(--accent); }
+.emoji-grid button.selected { background:var(--accent-dim); border-color:var(--accent); box-shadow:0 0 10px var(--accent-glow); }
+
+.add-habit-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid var(--border); }
+.add-habit-row input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.8rem; outline:none; }
+.add-habit-row input:focus { border-color:var(--accent); }
+.add-habit-row button { background:var(--accent); color:white; border:none; border-radius:8px; padding:8px 16px; font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.8rem; cursor:pointer; transition:all 0.2s; }
+.add-habit-row button:hover { transform:scale(1.05); box-shadow:0 0 16px var(--accent-glow); }
+
+.quote-bar { text-align:center; padding:20px; font-size:0.85rem; color:var(--text-dim); font-style:italic; letter-spacing:0.5px; border-top:1px solid var(--border); margin-top:12px; }
+.quote-bar strong { color:var(--accent-light); font-style:normal; }
+
+@media (max-width:768px) { .header h1{font-size:2.2rem} .stats-bar{grid-template-columns:repeat(2,1fr)} .app{padding:16px 12px 40px} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.habit-section,.sleep-section,.stats-bar { animation:fadeIn 0.5s ease-out both; }
+.stats-bar{animation-delay:0.1s} .habit-section{animation-delay:0.2s} .sleep-section{animation-delay:0.3s}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>GRIND 30 — LE PROTOCOLE</h1>
+      <div class="subtitle">Chaque jour gaspillé est la preuve que tu n'en veux pas assez.</div>
+    </div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <div class="current-month" id="monthLabel"></div>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+  </div>
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="main-grid">
+    <div class="habit-section">
+      <div class="section-header">
+        <h2>🎯 HABITUDES QUOTIDIENNES</h2>
+        <span>Clic = ✓ &nbsp;|&nbsp; Double-clic = ✗ &nbsp;|&nbsp; Clic nom/icône = modifier</span>
+      </div>
+      <div class="table-wrap">
+        <table class="habit-table" id="habitTable"></table>
+      </div>
+      <div class="add-habit-row">
+        <input type="text" id="newHabitInput" placeholder="+ Ajouter une habitude..." onkeydown="if(event.key==='Enter')addHabit()">
+        <button onclick="addHabit()">Ajouter</button>
+      </div>
+    </div>
+    <div class="sleep-section">
+      <div class="section-header">
+        <h2>🌙 SUIVI DU SOMMEIL</h2>
+        <span>Clic sur un jour pour enregistrer</span>
+      </div>
+      <div class="sleep-goal-bar">
+        <span class="goal-label">🎯 Objectif :</span>
+        <div class="goal-group">
+          <label for="goalMin">Min</label>
+          <input type="number" id="goalMin" min="0" max="12" step="0.5" value="7" onchange="updateSleepGoal()">
+          <label>h</label>
+        </div>
+        <div class="goal-group">
+          <label for="goalMax">Max</label>
+          <input type="number" id="goalMax" min="0" max="12" step="0.5" value="8" onchange="updateSleepGoal()">
+          <label>h</label>
+        </div>
+      </div>
+      <div class="sleep-chart-wrap">
+        <div class="sleep-canvas-container"><canvas id="sleepChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="quote-bar"><strong>« La discipline, c'est choisir entre ce que tu veux maintenant et ce que tu veux le plus. »</strong></div>
+</div>
+
+<!-- Modale Sommeil -->
+<div class="modal-overlay" id="sleepModal">
+  <div class="modal-box">
+    <h3>HEURES DE SOMMEIL</h3>
+    <div class="day-label" id="sleepDayLabel">Jour 1</div>
+    <div class="sleep-value-display"><span id="sleepValDisplay">7</span> <span class="unit-label">h</span></div>
+    <input type="range" id="sleepSlider" min="0" max="12" step="0.5" value="7" oninput="document.getElementById('sleepValDisplay').textContent=this.value">
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeSleepModal()">Annuler</button>
+      <button class="btn-save" onclick="saveSleep()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale Modifier Habitude -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <h3>MODIFIER L'HABITUDE</h3>
+    <div class="day-label" id="editLabel">Renommer et choisir une icône</div>
+    <input type="text" class="edit-input" id="editNameInput" placeholder="Nom de l'habitude" onkeydown="if(event.key==='Enter')saveEdit()">
+    <div class="emoji-grid" id="emojiGrid"></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeEditModal()">Annuler</button>
+      <button class="btn-save" onclick="saveEdit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'dashboard30_v4';
+const EMOJI_OPTIONS = ['💧','🏋️','😴','📖','🧴','📵','⚡','🔥','💪','🎯','📌','✨','🧠','🏆','💎','🚀','🥗','🧘','💊','☀️','🎵','📝','🌿','🫀'];
+const DEFAULT_HABITS = [
+  { id:'h1', name:'Boire 2-3L d\'eau', icon:'💧' },
+  { id:'h2', name:'Entraînement / Sport', icon:'🏋️' },
+  { id:'h3', name:'7-8h de sommeil', icon:'😴' },
+  { id:'h4', name:'Lire 10+ pages', icon:'📖' },
+  { id:'h5', name:'Routine skincare', icon:'🧴' },
+  { id:'h6', name:'Pas de scroll inutile', icon:'📵' },
+];
+
+let state = loadState();
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let sleepEditDay = null;
+let editingHabitId = null;
+let selectedEmoji = null;
+
+function getMonthKey(y,m){return `${y}-${String(m+1).padStart(2,'0')}`}
+
+function loadState(){
+  try{const s=localStorage.getItem(STORAGE_KEY);if(s)return JSON.parse(s)}catch(e){}
+  return{habits:DEFAULT_HABITS,months:{},sleepGoal:{min:7,max:8}};
+}
+
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+
+function getMonthData(y,m){const k=getMonthKey(y,m);if(!state.months[k])state.months[k]={checks:{},sleep:{}};return state.months[k]}
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate()}
+function isToday(y,m,d){const t=new Date();return t.getFullYear()===y&&t.getMonth()===m&&t.getDate()===d}
+
+// Ensure sleepGoal exists
+if(!state.sleepGoal) state.sleepGoal={min:7,max:8};
+
+function initGoalInputs(){
+  document.getElementById('goalMin').value=state.sleepGoal.min;
+  document.getElementById('goalMax').value=state.sleepGoal.max;
+}
+
+function updateSleepGoal(){
+  let min=parseFloat(document.getElementById('goalMin').value)||0;
+  let max=parseFloat(document.getElementById('goalMax').value)||12;
+  if(min>max){const t=min;min=max;max=t;document.getElementById('goalMin').value=min;document.getElementById('goalMax').value=max}
+  state.sleepGoal={min,max};
+  saveState();
+  renderSleepChart();
+  renderStats();
+}
+
+// ==================== RENDER ====================
+function render(){renderMonthLabel();renderStats();renderTable();renderSleepChart()}
+
+function renderMonthLabel(){
+  const m=['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+  document.getElementById('monthLabel').textContent=`${m[currentMonth]} ${currentYear}`;
+}
+
+function changeMonth(dir){
+  currentMonth+=dir;
+  if(currentMonth>11){currentMonth=0;currentYear++}
+  if(currentMonth<0){currentMonth=11;currentYear--}
+  render();
+}
+
+function renderStats(){
+  const md=getMonthData(currentYear,currentMonth);
+  const days=daysInMonth(currentYear,currentMonth);
+  const today=new Date();
+  const isCur=today.getFullYear()===currentYear&&today.getMonth()===currentMonth;
+  const activeDays=isCur?today.getDate():days;
+  let totalChecks=0,totalPossible=0,perfectDays=0,currentStreak=0,counting=true;
+  for(let d=activeDays;d>=1;d--){
+    let dc=0;
+    state.habits.forEach(h=>{if(md.checks[`${h.id}_${d}`]===1){totalChecks++;dc++}totalPossible++});
+    if(dc===state.habits.length)perfectDays++;
+    if(counting&&dc===state.habits.length)currentStreak++;else counting=false;
+  }
+  const pct=totalPossible>0?Math.round((totalChecks/totalPossible)*100):0;
+  const sv=Object.values(md.sleep||{}).filter(v=>v>0);
+  const avg=sv.length>0?(sv.reduce((a,b)=>a+b,0)/sv.length).toFixed(1):'—';
+
+  // Nuits dans l'objectif
+  const gMin=state.sleepGoal.min, gMax=state.sleepGoal.max;
+  const nightsInGoal=sv.filter(v=>v>=gMin&&v<=gMax).length;
+
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat-card"><div class="label">Taux de réussite</div><div class="value">${pct}<span class="unit">%</span></div></div>
+    <div class="stat-card"><div class="label">Jours parfaits</div><div class="value">${perfectDays}<span class="unit">/${activeDays}</span></div></div>
+    <div class="stat-card"><div class="label">Série en cours</div><div class="value">${currentStreak}<span class="unit"> j</span></div></div>
+    <div class="stat-card"><div class="label">Sommeil moyen</div><div class="value">${avg}<span class="unit"> h</span></div></div>`;
+}
+
+function renderTable(){
+  const days=daysInMonth(currentYear,currentMonth);
+  const md=getMonthData(currentYear,currentMonth);
+  let html='<thead><tr><th style="text-align:left;padding-left:16px">PROTOCOLE</th>';
+  for(let d=1;d<=days;d++){const c=isToday(currentYear,currentMonth,d)?' today-col':'';html+=`<th class="${c}">${d}</th>`}
+  html+='</tr></thead><tbody>';
+  state.habits.forEach(h=>{
+    html+=`<tr><td class="habit-name"><button class="icon-btn" onclick="openEditModal('${h.id}')" title="Changer l'icône">${h.icon}</button><span class="name-text" onclick="openEditModal('${h.id}')" title="Renommer">${h.name}</span><button class="delete-habit" onclick="deleteHabit('${h.id}')" title="Supprimer">✕</button></td>`;
+    for(let d=1;d<=days;d++){
+      const k=`${h.id}_${d}`;const v=md.checks[k];let c='day-cell';
+      if(isToday(currentYear,currentMonth,d))c+=' today-col';
+      if(v===1)c+=' checked';else if(v===-1)c+=' missed';
+      html+=`<td class="${c}" onclick="toggleCheck('${h.id}',${d})" ondblclick="toggleMiss('${h.id}',${d})"></td>`;
+    }
+    html+='</tr>';
+  });
+  html+='<tr class="score-row"><td class="habit-name">SCORE</td>';
+  for(let d=1;d<=days;d++){
+    let ck=0;state.habits.forEach(h=>{if(md.checks[`${h.id}_${d}`]===1)ck++});
+    const has=state.habits.some(h=>md.checks[`${h.id}_${d}`]!==undefined);
+    const p=state.habits.length>0?Math.round((ck/state.habits.length)*100):0;
+    let c='score-val';if(has){if(p===100)c+=' perfect';else if(p>=60)c+=' good';else c+=' low'}
+    const tc=isToday(currentYear,currentMonth,d)?' today-col':'';
+    html+=`<td class="${tc}" style="background:var(--surface2)"><span class="${c}">${has?p+'%':''}</span></td>`;
+  }
+  html+='</tr></tbody>';
+  document.getElementById('habitTable').innerHTML=html;
+}
+
+function toggleCheck(id,d){const md=getMonthData(currentYear,currentMonth);const k=`${id}_${d}`;md.checks[k]=md.checks[k]===1?undefined:1;saveState();render()}
+function toggleMiss(id,d){const md=getMonthData(currentYear,currentMonth);const k=`${id}_${d}`;md.checks[k]=md.checks[k]===-1?undefined:-1;saveState();render()}
+
+function addHabit(){
+  const input=document.getElementById('newHabitInput');const name=input.value.trim();if(!name)return;
+  const id='h_'+Date.now();const icon=EMOJI_OPTIONS[Math.floor(Math.random()*EMOJI_OPTIONS.length)];
+  state.habits.push({id,name,icon});saveState();input.value='';render();
+}
+
+function deleteHabit(id){
+  if(!confirm('Supprimer cette habitude ?'))return;
+  state.habits=state.habits.filter(h=>h.id!==id);
+  Object.values(state.months).forEach(m=>{Object.keys(m.checks).forEach(k=>{if(k.startsWith(id+'_'))delete m.checks[k]})});
+  saveState();render();
+}
+
+// ==================== MODIFIER HABITUDE ====================
+function openEditModal(habitId){
+  editingHabitId=habitId;
+  const habit=state.habits.find(h=>h.id===habitId);if(!habit)return;
+  selectedEmoji=habit.icon;
+  document.getElementById('editNameInput').value=habit.name;
+  document.getElementById('editLabel').textContent=`Modifier : ${habit.name}`;
+  let html='';EMOJI_OPTIONS.forEach(e=>{const s=e===selectedEmoji?' selected':'';html+=`<button class="${s}" onclick="selectEmoji(this,'${e}')">${e}</button>`});
+  document.getElementById('emojiGrid').innerHTML=html;
+  document.getElementById('editModal').classList.add('active');
+  document.getElementById('editNameInput').focus();
+}
+function selectEmoji(btn,emoji){selectedEmoji=emoji;document.querySelectorAll('#emojiGrid button').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected')}
+function closeEditModal(){document.getElementById('editModal').classList.remove('active');editingHabitId=null}
+function saveEdit(){
+  if(!editingHabitId)return;const h=state.habits.find(h=>h.id===editingHabitId);if(!h)return;
+  const n=document.getElementById('editNameInput').value.trim();if(n)h.name=n;if(selectedEmoji)h.icon=selectedEmoji;
+  saveState();closeEditModal();render();
+}
+
+// ==================== GRAPHIQUE SOMMEIL ====================
+function renderSleepChart(){
+  const canvas=document.getElementById('sleepChart');const ctx=canvas.getContext('2d');
+  const container=canvas.parentElement;const dpr=window.devicePixelRatio||1;
+  canvas.width=container.offsetWidth*dpr;canvas.height=container.offsetHeight*dpr;ctx.scale(dpr,dpr);
+  const W=container.offsetWidth,H=container.offsetHeight;
+  const days=daysInMonth(currentYear,currentMonth);const md=getMonthData(currentYear,currentMonth);
+  const padL=40,padR=16,padT=16,padB=30;
+  const chartW=W-padL-padR,chartH=H-padT-padB,maxH=12;
+  const gMin=state.sleepGoal.min, gMax=state.sleepGoal.max;
+  ctx.clearRect(0,0,W,H);
+
+  // Grille — chaque heure 0-12
+  for(let h=0;h<=maxH;h++){
+    const y=padT+chartH-(h/maxH)*chartH;
+    ctx.beginPath();ctx.strokeStyle=h%2===0?'rgba(168,85,247,0.08)':'rgba(168,85,247,0.04)';ctx.lineWidth=1;
+    ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle=h%2===0?'#7b72a0':'#4a4270';ctx.font=h%2===0?'10px DM Sans':'9px DM Sans';ctx.textAlign='right';
+    ctx.fillText(h+'h',padL-8,y+3);
+  }
+
+  // Zone objectif (dynamique)
+  const yGoalMin=padT+chartH-(gMin/maxH)*chartH;
+  const yGoalMax=padT+chartH-(gMax/maxH)*chartH;
+  ctx.fillStyle='rgba(168,85,247,0.07)';
+  ctx.fillRect(padL,yGoalMax,chartW,yGoalMin-yGoalMax);
+
+  // Lignes de bordure objectif
+  ctx.beginPath();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(168,85,247,0.25)';ctx.lineWidth=1;
+  ctx.moveTo(padL,yGoalMax);ctx.lineTo(W-padR,yGoalMax);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(padL,yGoalMin);ctx.lineTo(W-padR,yGoalMin);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Label objectif
+  ctx.fillStyle='rgba(168,85,247,0.4)';ctx.font='bold 9px DM Sans';ctx.textAlign='left';
+  ctx.fillText(`Objectif : ${gMin}h — ${gMax}h`,padL+6,yGoalMax+12);
+
+  // Points
+  const points=[];
+  for(let d=1;d<=days;d++){
+    const x=padL+((d-0.5)/days)*chartW;const val=md.sleep[d];
+    ctx.fillStyle=isToday(currentYear,currentMonth,d)?'#a855f7':'#7b72a0';
+    ctx.font=isToday(currentYear,currentMonth,d)?'bold 10px DM Sans':'9px DM Sans';
+    ctx.textAlign='center';ctx.fillText(d,x,H-8);
+    if(val!==undefined&&val>0){points.push({x,y:padT+chartH-(val/maxH)*chartH,val,day:d})}
+  }
+
+  // Ligne + remplissage
+  if(points.length>1){
+    ctx.beginPath();ctx.strokeStyle='#a855f7';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.shadowColor='rgba(168,85,247,0.4)';ctx.shadowBlur=8;
+    points.forEach((p,i)=>{if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});ctx.stroke();ctx.shadowBlur=0;
+    const grad=ctx.createLinearGradient(0,padT,0,padT+chartH);
+    grad.addColorStop(0,'rgba(168,85,247,0.18)');grad.addColorStop(1,'rgba(168,85,247,0)');
+    ctx.lineTo(points[points.length-1].x,padT+chartH);ctx.lineTo(points[0].x,padT+chartH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  }
+
+  // Points avec couleur basée sur l'objectif
+  points.forEach(p=>{
+    const inGoal = p.val>=gMin && p.val<=gMax;
+    const tooLow = p.val<gMin;
+    ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);
+    ctx.fillStyle = inGoal ? '#a855f7' : tooLow ? '#f43f5e' : '#facc15';
+    ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=6;ctx.fill();ctx.shadowBlur=0;
+    ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fillStyle='#0c0a12';ctx.fill();
+  });
+
+  canvas.onclick=function(e){
+    const rect=canvas.getBoundingClientRect();const mx=e.clientX-rect.left;
+    for(let d=1;d<=days;d++){const x=padL+((d-0.5)/days)*chartW;if(Math.abs(mx-x)<chartW/days/2){openSleepModal(d);break}}
+  };
+}
+
+// ==================== MODALE SOMMEIL ====================
+function openSleepModal(day){
+  sleepEditDay=day;const md=getMonthData(currentYear,currentMonth);const val=md.sleep[day]||7;
+  document.getElementById('sleepSlider').value=val;document.getElementById('sleepValDisplay').textContent=val;
+  document.getElementById('sleepDayLabel').textContent=`Jour ${day}`;document.getElementById('sleepModal').classList.add('active');
+}
+function closeSleepModal(){document.getElementById('sleepModal').classList.remove('active');sleepEditDay=null}
+function saveSleep(){
+  if(sleepEditDay===null)return;const md=getMonthData(currentYear,currentMonth);
+  md.sleep[sleepEditDay]=parseFloat(document.getElementById('sleepSlider').value);saveState();closeSleepModal();render();
+}
+
+// ==================== INIT ====================
+window.addEventListener('resize',()=>renderSleepChart());
+initGoalInputs();
+render();
+
+// Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(()=>console.log('SW enregistré')).catch(e=>console.log('SW erreur:',e));
+}
+</script>
+</body>
+</html>
